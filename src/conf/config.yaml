@@ -1,0 +1,9 @@
+#  Hydra.cc config file for Mediapipe to Openpose JSON export
+
+files:
+  test_img_path : /home/atif/Documents/Mediapipe_to_OpenPose_JSON/images/
+
+
+params:
+  # For Img JSON
+  write_json : True
