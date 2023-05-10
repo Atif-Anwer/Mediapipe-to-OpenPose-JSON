@@ -121,7 +121,7 @@ def main(cfg: DictConfig):
 
 				# Reordering list to comply to openpose format
 				# For the order table,refer to the Notion page
-				mp_to_op_reorder = [0, 0, 12, 14, 16, 11, 13, 15, 0, 24, 26, 28, 23, 25, 27, 5, 2, 8, 7, 31, 31, 29, 32, 32, 30, 0, 0, 0, 0, 0, 0, 0, 0]
+				mp_to_op_reorder = [0, 1, 12, 14, 16, 11, 13, 15, 0, 24, 26, 28, 23, 25, 27, 5, 2, 8, 7, 31, 31, 29, 32, 32, 30, 0, 0, 0, 0, 0, 0, 0, 0]
 				onlyList = [tmp[i] for i in mp_to_op_reorder]
 
 				# delete the last 8 elements to conform to OpenPose joint length of 25
