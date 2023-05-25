@@ -103,25 +103,29 @@ def main(cfg: DictConfig):
 					qq = (coords_dict['x'], coords_dict['y'], coords_dict['visibility'])
 					tmp.append(qq)
 
-				# Calculate the two additional joints for openpose and add them
-				# NECK KPT
-				tmp[1] = ( (tmp[12][0] - tmp[11][0]) / 2 + tmp[12][0], \
-					   (tmp[12][1] - tmp[11][1]) / 2 + tmp[12][1], \
-					   0.95 )
-				# HIP_MID
-				tmp[8] = ( (tmp[24][0] - tmp[23][0]) / 2 + tmp[24][0], \
-					   (tmp[24][1] - tmp[23][1]) / 2 + tmp[24][1], \
-					    0.95 )
-
-				#  SSCALING the x and y coordinates with the resolution of the image to get px corrdinates
+				#  SCALING the x and y coordinates with the resolution of the image to get px corrdinates
 				for i in range(len(tmp)):
 					tmp[i] = ( int(np.multiply(tmp[i][0], width)), \
 						   int(np.multiply(tmp[i][1], height)), \
 						   tmp[i][2])
+				# Calculate the two additional joints for openpose and add them
+				# NECK KPT
+				tmp[1] = ( (tmp[11][0] - tmp[12][0]) / 2 + tmp[12][0], \
+					   (tmp[11][1] + tmp[12][1]) / 2 , \
+					   0.95 )
+				# saving the hip mid point in the list for later use
+				stash = tmp[8]
+				# HIP_MID
+				tmp.append(stash)
+				tmp[8] = ( (tmp[23][0] - tmp[24][0]) / 2 + tmp[24][0], \
+					   (tmp[23][1] + tmp[24][1]) / 2 , \
+					    0.95 )
 
 				# Reordering list to comply to openpose format
 				# For the order table,refer to the Notion page
-				mp_to_op_reorder = [0, 1, 12, 14, 16, 11, 13, 15, 0, 24, 26, 28, 23, 25, 27, 5, 2, 8, 7, 31, 31, 29, 32, 32, 30, 0, 0, 0, 0, 0, 0, 0, 0]
+				# restoring the saved hip mid point
+				mp_to_op_reorder = [0, 1, 12, 14, 16, 11, 13, 15, 8, 24, 26, 28, 23, 25, 27, 5, 2, 33, 7, 31, 31, 29, 32, 32, 30, 0, 0, 0, 0, 0, 0, 0, 0]
+
 				onlyList = [tmp[i] for i in mp_to_op_reorder]
 
 				# delete the last 8 elements to conform to OpenPose joint length of 25
