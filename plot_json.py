@@ -24,7 +24,6 @@ BODY_25_LINES = [
     [17, 15, 0, 1, 8, 9, 10, 11, 22, 23],  # Right eye down to right leg
     [11, 24],  # Right heel
     [0, 16, 18],  # Left eye
-    [9, 8, 12],  # hip
     [4, 3, 2, 1, 5, 6, 7],  # Arms
     [8, 12, 13, 14, 20],  # Left leg
     [14, 21]  # Left heel
