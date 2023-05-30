@@ -1,13 +1,18 @@
 # """
 # GUI using CustomTkinter for generating OpenPose JSON using Mediapipe Pose model.
 # """
+import os
 import random
 import tkinter
 import tkinter.messagebox
+from tkinter import filedialog as fd
 
 # Importing the custom tkinter library for constructing the advanced GUI interface
 import customtkinter
 from PIL import Image, ImageTk
+
+from mediapipe_JSON import generate_MP_JSON
+from plot_json import plot_OpenposeJSON
 
 customtkinter.set_appearance_mode("Dark")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
@@ -52,45 +57,65 @@ class App(customtkinter.CTk):
         self.btn_loadImage = customtkinter.CTkButton(self.sidebar_frame, command=self.ftn_loadImage, text="Load Image", width=275, height= 50)
         self.btn_loadImage.grid(row=1, column=0, padx=20, pady=10,)
 
-        self.btn_loadJSON = customtkinter.CTkButton(self.sidebar_frame, command=self.sidebar_button_event, text="Save JSON", width=275, height= 50)
-        self.btn_loadJSON.grid(row=2, column=0, padx=20, pady=10)
-
-        self.btn_plotOpenposeJSON = customtkinter.CTkButton(self.sidebar_frame, command=self.sidebar_button_event, text="Load Openpose JSON", width=275, height= 50)
+        self.btn_plotOpenposeJSON = customtkinter.CTkButton(self.sidebar_frame, command=self.ftn_loadOpenPoseJSON, text="Plot Openpose JSON", width=275, height= 50)
         self.btn_plotOpenposeJSON.grid(row=3, column=0, padx=20, pady=10)
 
-        # Creating the frame
-        # self.imgframe = customtkinter.CTkFrame(master = self.kpt_frame)
-        # self.imgframe.pack(pady = 20, padx = 60, fill = "both", expand = True)
 
-        # button.pack()
+    def ftn_loadOpenPoseJSON(self) -> None:
 
-    def open_input_dialog_event(self):
-        dialog = customtkinter.CTkInputDialog(text="Type in a number:", title="CTkInputDialog")
-        print("CTkInputDialog:", dialog.get_input())
+        self.clearFrame(self.preview_frame)
+        self.clearFrame(self.kpt_frame)
 
-    def change_appearance_mode_event(self, new_appearance_mode: str):
-        customtkinter.set_appearance_mode(new_appearance_mode)
+        filename = fd.askopenfilename(title="Open OpenPose JSON File", filetypes=(("JSON files", "*.json"), ))
+        JSON_PATH = filename
+        os.getcwd()
+        os.chdir('/home/atif/Documents/Mediapipe_to_OpenPose_JSON/src/')
+        OUTPUT_PATH = '../images/output.jpg'
+        HT: int = 1500
+        WD: int = 1500
+        os.system(f"python plot_json.py {JSON_PATH} {OUTPUT_PATH} {HT} {WD}")
+        output_img = Image.open(OUTPUT_PATH)
+        output_img = ImageTk.PhotoImage(output_img.resize((int(HT/2), int(WD/2))))
+        label = customtkinter.CTkLabel(master = self.kpt_frame, image = output_img, text="")
+        label.pack()
 
-    def sidebar_button_event(self):
-        print("sidebar_button click")
+
 
     # Creating the function for displaying our image
-    def ftn_loadImage( self ):
-        IMAGE_PATH = 'images/A-pose.png'
+    def ftn_loadImage( self ) -> None:
+        self.clearFrame(self.preview_frame)
+        self.clearFrame(self.kpt_frame)
+
+        filename = fd.askopenfilename(title="Open Image", filetypes=(("PNG files", "*.png"), ("JPEG files", "*.jpg")))
+        # IMAGE_PATH = 'images/A-pose.png'
+        IMAGE_PATH = filename
         img = Image.open(IMAGE_PATH)
         img = ImageTk.PhotoImage(img.resize((200, 200)))
         label = customtkinter.CTkLabel(master = self.preview_frame, image = img, text="")
         label.pack()
 
-        IMAGE_PATH = 'images/A-pose.png'
+        # IMAGE_PATH = '../images/A-pose.png
+        # generate_MP_JSON(IMAGE_PATH)'
         img2 = Image.open(IMAGE_PATH)
         img2 = ImageTk.PhotoImage(img2.resize((700, 700)))
         label2 = customtkinter.CTkLabel(master = self.kpt_frame, image = img2, text="")
         label2.pack()
 
-    def clear_frame( self ):
-        for widgets in self.frame.winfo_children():
-            widgets.destroy()
+
+
+    def clearFrame( self, frame) -> None:
+        """Clears the frame contents
+
+        Args:
+            frame (CTKFrame): Frame to be cleared
+        """
+        # destroy all widgets from frame
+        for widget in frame.winfo_children():
+            widget.destroy()
+
+        # this will clear frame and frame will be empty
+        # if you want to hide the empty panel then
+        frame.pack_forget()
 
 
 if __name__ == "__main__":

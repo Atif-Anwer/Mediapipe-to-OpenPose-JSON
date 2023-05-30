@@ -57,7 +57,7 @@ def max_dim(doc, dim):
 @click.argument("pngout", type=click.File("wb"))
 @click.argument("width", type=int, required=False)
 @click.argument("height", type=int, required=False)
-def main(jsonin, pngout, width, height):
+def plot_OpenposeJSON(jsonin: str, pngout: str, width: int, height: int):
     doc = load(jsonin)
     if not width or not height:
         print("Warning: no width/height specified. Setting to max known + 10.", file=sys.stderr)
@@ -83,4 +83,4 @@ def main(jsonin, pngout, width, height):
 
 
 if __name__ == "__main__":
-    main()
+    plot_OpenposeJSON()

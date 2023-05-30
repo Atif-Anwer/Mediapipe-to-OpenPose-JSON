@@ -27,6 +27,10 @@ import mediapipe as mp
 import numpy as np
 from google.protobuf.json_format import MessageToDict
 from matplotlib.animation import FuncAnimation
+from mediapipe import solutions
+from mediapipe.framework.formats import landmark_pb2
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision as mp_python_vision
 from natsort import natsorted
 from omegaconf import DictConfig, OmegaConf
 
@@ -35,7 +39,7 @@ log = logging.getLogger(__name__)
 
 # Adding hydra config file to load parameters at file load
 @hydra.main(version_base = None, config_path = "conf", config_name = "config")
-def main(cfg: DictConfig):
+def generate_MP_JSON(cfg: DictConfig):
 	"""Main function."""
 	log.debug("Debug level message")
 
@@ -78,18 +82,29 @@ def main(cfg: DictConfig):
 		log.info(f"Processing image file: {img}")
 
 		count = 0
-		with mp_holistic.Holistic(	min_detection_confidence=0.5,
-						min_tracking_confidence=0.75,
-						model_complexity=2,
-						smooth_landmarks = True) as holistic:
+		with mp_pose.Pose(	min_detection_confidence	= 0.5,
+						min_tracking_confidence = 0.75,
+						model_complexity        = 2,
+						smooth_landmarks        = True) as pose:
 			frame = cv2.imread(img)
 			# getting image dimensions for scaling the x,y coordinates of the keypoints
 			height, width, _ = frame.shape
 			count += 1
 
 			# ------------- MEDIAPIPE DETECTION IN FRAME -------------
-			results = holistic.process(frame)
-			landmarks = results.pose_landmarks.landmark
+			results = pose.process(frame)
+
+			landmarks_list = results.pose_landmarks
+
+			landmarks = landmarks_list.landmark
+			qq = mp_drawing.plot_landmarks( landmarks_list,  mp_pose.POSE_CONNECTIONS)
+
+			axes_weights=[1.0, 1.0, 0.2, 1.0]
+			# scale the z dimension for all landmarks by 0.2
+			temp = [landmarks[i].z * axes_weights[2] for i in range(len(landmarks))]
+			# replace with the updated z value
+			for i in range(len(landmarks)):
+				landmarks[i].z = temp[i]
 
 			if cfg.params.write_json == True:
 				tmp =[]
@@ -167,7 +182,7 @@ def main(cfg: DictConfig):
 
 # ------------------------------------------------
 if __name__ == "__main__":
-	main()
+	generate_MP_JSON()
 
 
 # REFERENCES:
