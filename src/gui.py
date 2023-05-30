@@ -12,6 +12,7 @@ from glob import glob
 from os.path import join
 from pickle import FALSE
 from tkinter import filedialog as fd
+from tkinter import messagebox
 
 # Importing the custom tkinter library for constructing the advanced GUI interface
 import customtkinter
@@ -45,8 +46,8 @@ class App(customtkinter.CTk):
         # weight of 1 so it will expand. weight of 0 and will only be as big as it needs to be to fit the widgets inside of it.
         # self.grid_columnconfigure((2, 3), weight=0)
         # self.grid_rowconfigure((0, 1, 2), weight=1)
-        self.grid_rowconfigure(0, weight=0)
-        # self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
         # self.grid_columnconfigure((0, 1), weight=1)
 
         # --- Create Frames ---
@@ -55,7 +56,7 @@ class App(customtkinter.CTk):
         self.sidebar_frame.grid_rowconfigure(0, weight=0)
 
         self.kpt_frame = customtkinter.CTkFrame(self, height=600, width=600, corner_radius=0)
-        self.kpt_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
+        self.kpt_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10, rowspan=2)
         self.sidebar_frame.grid_rowconfigure(0, weight=1)
 
         self.preview_frame = customtkinter.CTkFrame(self, height=400, width=400, corner_radius=0)
@@ -71,6 +72,9 @@ class App(customtkinter.CTk):
 
 
     def ftn_loadOpenPoseJSON(self) -> None:
+        """
+        Genreate Openpose JSON from Mediapipe JSON files in a folder
+        """
 
         self.clearFrame(self.preview_frame)
         self.clearFrame(self.kpt_frame)
@@ -79,9 +83,6 @@ class App(customtkinter.CTk):
         img_folder = []
         # img_folder.extend(glob(join(str(dirpath), ext)))
         img_folder = list(pathlib.Path(dirpath).glob('*.json'))
-
-        qq = os.getcwd()
-        os.chdir(qq+'/src/')
 
         for path in natsorted(img_folder):
             # Debug print file name
@@ -94,20 +95,32 @@ class App(customtkinter.CTk):
             HT: int = 1500
             WD: int = 1500
 
-            os.system(f"python plot_json.py {JSON_PATH} {OUTPUT_PATH} {HT} {WD}")
+            qq = os.getcwd()
+            # os.chdir(qq+'/images/')
+            os.system(f"python ./src/plot_json.py {JSON_PATH} {OUTPUT_PATH} {HT} {WD}")
 
             output_img = Image.open(OUTPUT_PATH)
             output_img = ImageTk.PhotoImage(output_img.resize((int(HT/2), int(WD/2))))
             label = customtkinter.CTkLabel(master = self.kpt_frame, image = output_img, text="")
             label.pack()
 
+            answer = messagebox.askyesno("Next image?","Do you want to open the next JSON file?")
+
+            if answer is False:
+                break
+
             self.clearFrame(self.preview_frame)
             self.clearFrame(self.kpt_frame)
 
 
 
+
     # Creating the function for displaying our image
     def ftn_loadImage( self ) -> None:
+        """
+        Load image from a folder and generate Mediapipe JSON file
+        """
+
         self.clearFrame(self.preview_frame)
         self.clearFrame(self.kpt_frame)
 
@@ -117,6 +130,8 @@ class App(customtkinter.CTk):
         for ext in ('*.png', '*.jpg', '*.jpeg'):
             img_folder.extend(glob(join(str(dirpath), ext)))
 
+        qq = os.getcwd()
+        # os.chdir(qq+'/images/')
         # Generate keypoints for all images in folder
         os.system(f"python src/mediapipe_JSON.py files.test_img_path={dirpath}")
 
@@ -134,6 +149,11 @@ class App(customtkinter.CTk):
             img2 = ImageTk.PhotoImage(img2.resize((700, 700)))
             label2 = customtkinter.CTkLabel(master = self.kpt_frame, image = img2, text="")
             label2.pack()
+
+            answer = messagebox.askyesno("Next image?","Do you want to open the next Keypoint file?")
+
+            if answer is False:
+                break
 
             self.clearFrame(self.preview_frame)
             self.clearFrame(self.kpt_frame)
