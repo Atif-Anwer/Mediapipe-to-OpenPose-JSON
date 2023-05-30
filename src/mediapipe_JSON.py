@@ -97,7 +97,19 @@ def generate_MP_JSON(cfg: DictConfig):
 			landmarks_list = results.pose_landmarks
 
 			landmarks = landmarks_list.landmark
-			qq = mp_drawing.plot_landmarks( landmarks_list,  mp_pose.POSE_CONNECTIONS)
+			# 3D view of landmarks
+			# qq = mp_drawing.plot_landmarks( landmarks_list,  mp_pose.POSE_CONNECTIONS)
+
+			# Plot and save the landmarks on the image
+			mp_drawing.draw_landmarks(
+				frame,
+				results.pose_landmarks,
+				mp_pose.POSE_CONNECTIONS,
+				landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
+
+			# write image to storage
+			filename=img.replace(".","_keypoints.")
+			cv2.imwrite(filename, frame)
 
 			axes_weights=[1.0, 1.0, 0.2, 1.0]
 			# scale the z dimension for all landmarks by 0.2

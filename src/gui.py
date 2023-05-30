@@ -1,14 +1,21 @@
 # """
 # GUI using CustomTkinter for generating OpenPose JSON using Mediapipe Pose model.
 # """
+import json
+import logging
 import os
+import pathlib
 import random
 import tkinter
 import tkinter.messagebox
+from glob import glob
+from os.path import join
+from pickle import FALSE
 from tkinter import filedialog as fd
 
 # Importing the custom tkinter library for constructing the advanced GUI interface
 import customtkinter
+from natsort import natsorted
 from PIL import Image, ImageTk
 
 from mediapipe_JSON import generate_MP_JSON
@@ -21,6 +28,8 @@ customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "gre
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
+        # Configuring python logger
+        self.log = logging.getLogger(__name__)
 
         # configure window
         self.title("Mediapipe to OpenPose JSON Generator")
@@ -66,18 +75,34 @@ class App(customtkinter.CTk):
         self.clearFrame(self.preview_frame)
         self.clearFrame(self.kpt_frame)
 
-        filename = fd.askopenfilename(title="Open OpenPose JSON File", filetypes=(("JSON files", "*.json"), ))
-        JSON_PATH = filename
-        os.getcwd()
-        os.chdir('/home/atif/Documents/Mediapipe_to_OpenPose_JSON/src/')
-        OUTPUT_PATH = '../images/output.jpg'
-        HT: int = 1500
-        WD: int = 1500
-        os.system(f"python plot_json.py {JSON_PATH} {OUTPUT_PATH} {HT} {WD}")
-        output_img = Image.open(OUTPUT_PATH)
-        output_img = ImageTk.PhotoImage(output_img.resize((int(HT/2), int(WD/2))))
-        label = customtkinter.CTkLabel(master = self.kpt_frame, image = output_img, text="")
-        label.pack()
+        dirpath = fd.askdirectory(title="Directory containing OpenPose JSON Files", initialdir='./images')
+        img_folder = []
+        # img_folder.extend(glob(join(str(dirpath), ext)))
+        img_folder = list(pathlib.Path(dirpath).glob('*.json'))
+
+        qq = os.getcwd()
+        os.chdir(qq+'/src/')
+
+        for path in natsorted(img_folder):
+            # Debug print file name
+            self.log.info(f"Processing image file: {path}")
+
+            JSON_PATH = path
+            OUTPUT_PATH = pathlib.Path(str(path).replace(".json","_OpenPoseKeypoints.jpg"))
+            # filename=path.replace(".json","_OpenPoseKeypoints.json")
+            # OUTPUT_PATH = dirpath + 'output.jpg'
+            HT: int = 1500
+            WD: int = 1500
+
+            os.system(f"python plot_json.py {JSON_PATH} {OUTPUT_PATH} {HT} {WD}")
+
+            output_img = Image.open(OUTPUT_PATH)
+            output_img = ImageTk.PhotoImage(output_img.resize((int(HT/2), int(WD/2))))
+            label = customtkinter.CTkLabel(master = self.kpt_frame, image = output_img, text="")
+            label.pack()
+
+            self.clearFrame(self.preview_frame)
+            self.clearFrame(self.kpt_frame)
 
 
 
@@ -86,20 +111,32 @@ class App(customtkinter.CTk):
         self.clearFrame(self.preview_frame)
         self.clearFrame(self.kpt_frame)
 
-        filename = fd.askopenfilename(title="Open Image", filetypes=(("PNG files", "*.png"), ("JPEG files", "*.jpg")))
+        dirpath = fd.askdirectory(title="Directory containing Image(s)", initialdir='./images')
         # IMAGE_PATH = 'images/A-pose.png'
-        IMAGE_PATH = filename
-        img = Image.open(IMAGE_PATH)
-        img = ImageTk.PhotoImage(img.resize((200, 200)))
-        label = customtkinter.CTkLabel(master = self.preview_frame, image = img, text="")
-        label.pack()
+        img_folder = []
+        for ext in ('*.png', '*.jpg', '*.jpeg'):
+            img_folder.extend(glob(join(str(dirpath), ext)))
 
-        # IMAGE_PATH = '../images/A-pose.png
-        # generate_MP_JSON(IMAGE_PATH)'
-        img2 = Image.open(IMAGE_PATH)
-        img2 = ImageTk.PhotoImage(img2.resize((700, 700)))
-        label2 = customtkinter.CTkLabel(master = self.kpt_frame, image = img2, text="")
-        label2.pack()
+        # Generate keypoints for all images in folder
+        os.system(f"python src/mediapipe_JSON.py files.test_img_path={dirpath}")
+
+        for path in natsorted(img_folder):
+            # Debug print file name
+            self.log.info(f"Processing image file: {path}")
+            # IMAGE_PATH = filename
+            img = Image.open(path)
+            img = ImageTk.PhotoImage(img.resize((200, 200)))
+            label = customtkinter.CTkLabel(master = self.preview_frame, image = img, text="")
+            label.pack()
+
+            filename=path.replace(".","_keypoints.")
+            img2 = Image.open(filename)
+            img2 = ImageTk.PhotoImage(img2.resize((700, 700)))
+            label2 = customtkinter.CTkLabel(master = self.kpt_frame, image = img2, text="")
+            label2.pack()
+
+            self.clearFrame(self.preview_frame)
+            self.clearFrame(self.kpt_frame)
 
 
 
