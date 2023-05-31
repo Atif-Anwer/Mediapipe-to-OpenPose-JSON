@@ -4,35 +4,31 @@
 ![Python][python-shield]
 
 <!-- GETTING STARTED -->
+
+# MediaPipe Pose to OpenPose JSON Generator
 ## Info
 
 Mediapipe pose extraction and exporting to OpenPose format but Mediapipe has 33 keypoints as output as compared to 25 from Openpose. The keypoints also have a different order.
-The code below extracts the keypoints from images in a folder and exports them as an Openpose JSON format with 25 keypoints.
-the JSON is compaitble with SMPLify-X for 3D shape extraction
+The code in this repository has three scripts:
+- `mediapipe_JSON.py` :  extracts the keypoints from all images in a folder and exports them as an Openpose JSON format with 25 keypoints. The JSON is compaitble with SMPLify-X for 3D shape extraction.
+- `plot_json.py` : plots the OpenPose keypoints and saves the image.
+- `gui.py` : GUI (made in [CustomTkinter](https://customtkinter.tomschimansky.com)) for the above two scripts, that displays the Mediapipe keypoints on the loaded image as well as the generated OpenPose keypoints. **Note that each of the scripts can be run independently and the GUI is not required to be run.** But running the GUI simplifies the process of running the scripts.
+
+
+![Rofi](./src//GUI.png "GUI Window" )
+
+## Other features:
 - Uses Hydra.cc for config
 - Supports only 1 person per frame (Mediapipe limitation)
 - Supports multiple image extensions in folder (PNG, JPG, JPEG etc)
-
-### INPUT:
-- Folder Path Containing RGB Images
-
-### RETURNS:
-- Mediapipe outputkeypoints in OpenPose compatible JSON format
+- Each script can be run separately, gui is optional
 
 ## Requirements
-- Hydra.cc
-- Mediapipe
+To install all the required packages: `pip install -r requirements.txt`
 
+## ToDo:
+- [ ] Image overlay for OpenPose JSON plot
+- [ ] Better GUI scaling for different screen sizes and images
 
 <!-- MARKDOWN LINKS & IMAGES -->
 [python-shield]: https://img.shields.io/badge/Python-3.7-blue?style=for-the-badge&logo=appveyor
-[tf-shield]: https://img.shields.io/badge/Tensorflow-2.8-orange?style=for-the-badge&logo=appveyor
-
-[issues-shield]: https://img.shields.io/github/issues/Atif-Anwer/SpecSeg?style=for-the-badge
-[issues-url]: https://github.com/Atif-Anwer/SpecSeg/issues
-[license-shield]: https://img.shields.io/badge/License-CC-brightgreen?style=for-the-badge
-[license-url]: https://github.com/othneildrew/Best-README-Template/blob/master/LICENSE.txt
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://www.linkedin.com/in/atifanwer/
-
-<!-- Soruce: https://github.com/othneildrew/Best-README-Template/pull/73 -->
