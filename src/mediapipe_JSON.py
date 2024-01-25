@@ -18,19 +18,12 @@ import json
 import logging
 from glob import glob
 from os.path import join
-from pickle import FALSE
 
 import cv2
 import hydra
-import matplotlib.pyplot as plt
 import mediapipe as mp
 import numpy as np
 from google.protobuf.json_format import MessageToDict
-from matplotlib.animation import FuncAnimation
-from mediapipe import solutions
-from mediapipe.framework.formats import landmark_pb2
-from mediapipe.tasks import python
-from mediapipe.tasks.python import vision as mp_python_vision
 from natsort import natsorted
 from omegaconf import DictConfig, OmegaConf
 
@@ -48,7 +41,6 @@ def generate_MP_JSON(cfg: DictConfig):
 
 	# ---- Mediapipe config ----
 	mp_drawing        = mp.solutions.drawing_utils
-	mp_holistic       = mp.solutions.holistic
 	mp_pose           = mp.solutions.pose
 	mp_drawing_styles = mp.solutions.drawing_styles
 
@@ -118,7 +110,7 @@ def generate_MP_JSON(cfg: DictConfig):
 			for i in range(len(landmarks)):
 				landmarks[i].z = temp[i]
 
-			if cfg.params.write_json == True:
+			if cfg.params.write_json is True:
 				tmp =[]
 				onlyList = []
 				list4json = []

@@ -16,10 +16,9 @@ from tkinter import messagebox
 
 # Importing the custom tkinter library for constructing the advanced GUI interface
 import customtkinter
+from mediapipe_JSON import generate_MP_JSON
 from natsort import natsorted
 from PIL import Image, ImageTk
-
-from mediapipe_JSON import generate_MP_JSON
 from plot_json import plot_OpenposeJSON
 
 customtkinter.set_appearance_mode("Dark")  # Modes: "System" (standard), "Dark", "Light"
