@@ -8,6 +8,7 @@ import mediapipe as mp
 import numpy as np
 from google.protobuf.json_format import MessageToDict
 from imutils.video import FPS, FileVideoStream
+from tqdm import tqdm
 
 
 def vid_to_JSON() -> None:
@@ -61,7 +62,7 @@ def vid_to_JSON() -> None:
 		axes_weights=[1.0, 1.0, 0.3, 1.0, 1.0]  # noqa: F841
 
 		print(f"{total_frames=}")
-		for count in range(total_frames):
+		for count in tqdm(range(total_frames)):
 
 			# Convert the frame to RGB
 			frame      = cv2.cvtColor(fvs.read(), cv2.COLOR_BGR2RGB)
@@ -91,17 +92,43 @@ def vid_to_JSON() -> None:
 				# qq = (coords_dict['x'], coords_dict['y'], coords_dict['visibility'])
 				# tmp.append(qq)
 
-			# Calculate the two additional joints for openpose and add them
-			# NECK KPT
-			neck_kpt = ( 	(pose[11][0] - pose[12][0]) / 2 + pose[12][0], \
-					(pose[11][1] + pose[12][1]) / 2 )
-			# replacing pose[1] (left-eye-inner) with the neck kpt
-			pose[1] = neck_kpt
-
 			#  SCALING the x and y coordinates with the resolution of the image to get px corrdinates
 			for i in range(len(pose)):
 				pose[i] = ( 	round( (np.multiply(pose[i][0], width)), 3), \
 						round( (np.multiply(pose[i][1], height)), 3) )
+
+			# ----------------- CALCULATING NEW KEPOINTS -----------------
+			# NECK KPT
+			# Calculate the two additional joints for openpose and add them
+			# The y distance to be added (y_offset) is the lower y value of the two points
+			y_offset = pose[11][1] if pose[11][1] <= pose[12][1] else pose[12][1]
+			neck_kpt = ( 	(pose[11][0] - pose[12][0]) / 2 + pose[12][0], \
+					(pose[11][1] + pose[12][1]) / 2 + y_offset)
+
+			# PELVIS KPT
+			# The y distance to be added (y_offset) is the lower y value of the two points
+			y_offset = pose[23][1] if pose[23][1] <= pose[24][1] else pose[24][1]
+			pelvis = ( 	(pose[23][0] - pose[24][0]) / 2 + pose[24][0],	\
+					(pose[23][1] + pose[24][1]) / 2 + y_offset 	)
+
+			# SPINE and THORAX KPT
+			# for spine: x-axis is the same as pelvis, y-axis is the average of neck and pelvis
+
+			x_offset = pelvis[0] if pelvis[0] <= neck_kpt[0] else neck_kpt[0]
+			y_offset = pelvis[1] if pelvis[1] <= neck_kpt[1] else neck_kpt[1]
+			spine 	 = ( 	(pelvis[0] - neck_kpt[0]) /2 + x_offset, \
+	    				(pelvis[1] - neck_kpt[1]) /2 + y_offset  )
+
+			thorax = neck_kpt	# TBD
+
+			y_offset = pose[2][1] if pose[2][1] <= pose[5][1] else pose[5][1]
+			head = ( 	(pose[2][0] - pose[5][0]) / 2 + pose[5][0], \
+					(pose[2][1] + pose[5][1]) / 2 + y_offset)
+
+			# ----------------- UPDATING THE KEYPOINTS -----------------
+
+			# replacing pose[1] (left-eye-inner) with the neck kpt
+			pose[1] = neck_kpt
 
 			# saving the hip mid point in the list for later use
 			# stash = pose[8]
@@ -113,10 +140,21 @@ def vid_to_JSON() -> None:
 			# Reordering list to comply to openpose format
 			# For the order table,refer to the Notion page
 			# body25__reorder = [0, 1, 12, 14, 16, 11, 13, 15, 8, 24, 26, 28, 23, 25, 27, 5, 2, 33, 7, 31, 31, 29, 32, 32, 30, 0, 0, 0, 0, 0, 0, 0, 0]
-			coco17_reorder = [0, 1, 12, 14, 16, 11, 13, 15, 24, 26, 28, 23, 25, 27, 5, 2, 8, 7]
+			# coco17_reorder = [0, 1, 12, 14, 16, 11, 13, 15, 24, 26, 28, 23, 25, 27, 5, 2, 8, 7]
 
-			onlyList = [pose[i] for i in coco17_reorder]
-			score = [score[i] for i in coco17_reorder]
+			semGCN_reorder_fromMP = [00, 23, 25, 27, 24, 26, 28, 00, 00, 00, 00, 2, 3, 4, 5, 6, 7]
+
+			# onlyList = [pose[i] for i in coco17_reorder]
+			# score = [score[i] for i in coco17_reorder]
+
+			onlyList = [pose[i] for i in semGCN_reorder_fromMP]
+			score = [score[i] for i in semGCN_reorder_fromMP]
+
+			onlyList[0] = pelvis
+			onlyList[7] = spine
+			onlyList[8] = thorax
+			onlyList[9] = neck_kpt
+			onlyList[10] = head
 
 			score    = [[i] for i in score]
 			# delete the last 8 elements to conform to OpenPose joint length of 25
@@ -132,11 +170,11 @@ def vid_to_JSON() -> None:
 			pose_17  = onlyList
 			score_17 = score
 			# delete the 8th and 17 onwards elements to conform to OpenPose joint length of 17
-			del pose_17[8]
-			del pose_17[17:]
+			# del pose_17[8]
+			# del pose_17[17:]
 
-			del score_17[8]
-			del score_17[17:]
+			# del score_17[8]
+			# del score_17[17:]
 
 			qq = {
 				"frame_index":	count+1,
