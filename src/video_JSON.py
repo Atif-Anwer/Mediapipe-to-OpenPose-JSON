@@ -1,27 +1,68 @@
 import json
-from glob import glob
-from os.path import join
+from enum import Enum
 
 import cv2
-import matplotlib.pyplot as plt
 import mediapipe as mp
 import numpy as np
-from google.protobuf.json_format import MessageToDict
+import rerun as rr
 from imutils.video import FPS, FileVideoStream
 from tqdm import tqdm
+
+# from glob import glob
+# from os.path import join
+# import matplotlib.pyplot as plt
+# from google.protobuf.json_format import MessageToDict
+# from mediapipe import solutions
+# from mediapipe.framework.formats import landmark_pb2
 
 
 def vid_to_JSON() -> None:
 	# Load the video
 	video_path = '/home/atif/Documents/Mediapipe_to_OpenPose_JSON/videos/baseball.mp4'
 	video_label = 'baseball'
-	# cap = cv2.VideoCapture(video_path)
+	kpts = {	'NOSE'		  : 00 ,
+		'LEFT_EYE_INNER'  : 1,
+		'LEFT_EYE'        : 2,
+		'LEFT_EYE_OUTER'  : 3,
+		'RIGHT_EYE_INNER' : 4,
+		'RIGHT_EYE'       : 5,
+		'RIGHT_EYE_OUTER' : 6,
+		'LEFT_EAR'        : 7,
+		'RIGHT_EAR'       : 8,
+		'MOUTH_LEFT'      : 9,
+		'MOUTH_RIGHT'     : 10,
+		'LEFT_SHOULDER'   : 11,
+		'RIGHT_SHOULDER'  : 12,
+		'LEFT_ELBOW'      : 13,
+		'RIGHT_ELBOW'     : 14,
+		'LEFT_WRIST'      : 15,
+		'RIGHT_WRIST'     : 16,
+		'LEFT_PINKY'      : 17,
+		'RIGHT_PINKY'     : 18,
+		'LEFT_INDEX'      : 19,
+		'RIGHT_INDEX'     : 20,
+		'LEFT_THUMB'      : 21,
+		'RIGHT_THUMB'     : 22,
+		'LEFT_HIP'        : 23,
+		'RIGHT_HIP'       : 24,
+		'LEFT_KNEE'       : 25,
+		'RIGHT_KNEE'      : 26,
+		'LEFT_ANKLE'      : 27,
+		'RIGHT_ANKLE'     : 28,
+		'LEFT_HEEL'       : 29,
+		'RIGHT_HEEL'      : 30,
+		'LEFT_FOOT_INDEX' : 31,
+		'RIGHT_FOOT_INDEX': 32,
+}
 
 	# Initialize MediaPipe
 	# mp_drawing = mp.solutions.drawing_utils
 	# mp_holistic = mp.solutions.holistic
 
 	# Sauce: https://developers.google.com/mediapipe/solutions/vision/pose_landmarker/python#video
+
+	qq = frozenset({ (15, 21), (16, 20), (18, 20), (3, 7), (14, 16), (23, 25), (28, 30), (11, 23), (27, 31), (6, 8), (15, 17), (24, 26), (16, 22), (4, 5), (5, 6), (29, 31), (12, 24), (23, 24), (0, 1), (9, 10), (1, 2), (0, 4), (11, 13), (30, 32), (28, 32), (15, 19), (16, 18), (25, 27), (26, 28), (12, 14), (17, 19), (2, 3), (11, 12), (27, 29), (13, 15), })
+
 	BaseOptions           = mp.tasks.BaseOptions
 	PoseLandmarker        = mp.tasks.vision.PoseLandmarker
 	PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
@@ -34,15 +75,40 @@ def vid_to_JSON() -> None:
 			output_segmentation_masks = True)
 
 	# ---- Video reader and writer ----
-	fourcc = cv2.VideoWriter_fourcc(*'XVID') # type: ignore
+	# fourcc = cv2.VideoWriter_fourcc(*'XVID') # type: ignore
 	# writer = None
 
 	# Batch loading all the videos in the target folder (path specified by the Hydra cfg file)
 	count      = 0
 	framecount = []
-	tmp        = []
 	onlyList   = []
-	list4json  = []
+	# tmp        = []
+	# list4json  = []
+
+	connections = Enum('connections', kpts)
+
+	DESCRIPTION = ""
+	rr.init("ErgoPose", spawn=True)
+	rr.log("description", rr.TextDocument(DESCRIPTION, media_type=rr.MediaType.MARKDOWN), timeless=True)
+	rr.log(
+		"/",
+		rr.AnnotationContext(
+		rr.ClassDescription(
+			info=rr.AnnotationInfo(id=0, label="Person"),
+			keypoint_annotations=[rr.AnnotationInfo(id=lm.value, label=lm.name) for lm in connections], # type: ignore
+					keypoint_connections=qq, # type: ignore
+		)
+		),
+		timeless=True,
+	)
+	rr.log( "video/mask",
+		rr.AnnotationContext([
+					rr.AnnotationInfo(id=0, label="Background"),
+					rr.AnnotationInfo(id=1, label="Person", color=(0, 0, 0)),
+					]),
+		timeless=True,
+		)
+	rr.connect()
 
 	json_data = {
 			"label":str(video_label),
@@ -72,8 +138,8 @@ def vid_to_JSON() -> None:
 			# count     += 1
 			fps.update()
 
-			mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
-			pose_landmarker_result = landmarker.detect_for_video(mp_image, count)
+			image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
+			pose_landmarker_result = landmarker.detect_for_video(image, count)
 			landmarks = (pose_landmarker_result.pose_landmarks[0])
 
 
@@ -101,6 +167,37 @@ def vid_to_JSON() -> None:
 			# show3Dpose( pose3d, ax )
 			# plt.show()
 
+			# ----------------- VISUALIZE 2D POSE -----------------
+			landmark_array = np.array ([ (	width  * landmarks[lm].x, \
+							height * landmarks[lm].y, \
+						-	(landmarks[lm].z) ) \
+							for lm in range(len(landmarks))])
+
+			landmark_array_3d = np.array ([( landmarks[lm].x, \
+								landmarks[lm].y, \
+								landmarks[lm].z) \
+							for lm in range(len(landmarks))])  	# noqa: E101
+
+			index_as_list =  np.array( list( kpts.items() ) )
+			rr.log("person", rr.ViewCoordinates.RIGHT_HAND_Y_DOWN, timeless=True)
+
+			# --------------------------
+			# rr.set_time_seconds("time", time.time())
+			rr.set_time_sequence("frame_idx", count)
+			rr.log("video/rgb", rr.Image(frame).compress(jpeg_quality=80))
+
+			# Log 2D Keypoints, Image and Mask
+			rr.log("video/pose/points", rr.Points2D(landmark_array , class_ids=0, keypoint_ids=index_as_list[:,1]))
+
+			rr.log("person/pose/points", rr.Points3D(landmark_array_3d , keypoint_ids=index_as_list[:,1]))
+
+			# threshold the mediapipe confidence to generate the mask
+			# segmentation_confidence_thresh = 0.70
+			# segmentation_mask = pose_landmarker_result.segmentation_masks[0].numpy_view() >= segmentation_confidence_thresh
+			# rr.log("video/mask", rr.SegmentationImage( segmentation_mask.astype(np.uint8) ))
+
+
+			rr.log("segmentation/frame", rr.Image(pose_landmarker_result.segmentation_masks[0].numpy_view()))
 			# ----------------------------------
 			framecount.append(count)
 			pose = []
@@ -116,8 +213,8 @@ def vid_to_JSON() -> None:
 
 			#  SCALING the x and y coordinates with the resolution of the image to get px corrdinates
 			for i in range(len(pose)):
-				pose[i] = ( 	round( (np.multiply(pose[i][0], width)), 3),
-						round( (np.multiply(pose[i][1], height)), 3) )
+				pose[i] = ( 	round( (np.multiply(pose[i][0], width)), 2),
+						round( (np.multiply(pose[i][1], height)), 2) )
 
 			# ----------------- CALCULATING NEW KEPOINTS -----------------
 			# NECK KPT
@@ -209,7 +306,7 @@ def vid_to_JSON() -> None:
 						{
 							"pose" :onlyList,
 							"score":score,
-							"bbox" :[200, 500, 100, 100]
+							"bbox" :[0, 0, 0, 0]
 						}
 					]
 				}
@@ -264,7 +361,7 @@ def show3Dpose(channels, ax, lcolor="#3498db", rcolor="#e74c3c", add_labels=Fals
 	assert channels.size == len(H36M_NAMES)*3, "channels should have 96 entries, it has %d instead" % channels.size
 	vals = np.reshape( channels, (len(H36M_NAMES), -1) )
 
-	I   = np.array([1,2,3,4,1,7,8,1, 13,14,15,14,18,19,14,26,27])-1 # start points
+	I   = np.array([1,2,3,4,1,7,8,1, 13,14,15,14,18,19,14,26,27])-1 # start points  # noqa: E741
 	J   = np.array([2,3,4,5,7,8,9,13,14,15,16,18,19,20,26,27,28])-1 # end points
 	LR  = np.array([1,1,1,1,0,0,0,0, 0, 0, 0, 0, 0, 0, 1, 1, 1], dtype=bool)
 
