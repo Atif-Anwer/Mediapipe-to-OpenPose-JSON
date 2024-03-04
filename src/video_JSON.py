@@ -55,9 +55,7 @@ def vid_to_JSON() -> None:
 		'RIGHT_FOOT_INDEX': 32,
 }
 
-	# Initialize MediaPipe
-	# mp_drawing = mp.solutions.drawing_utils
-	# mp_holistic = mp.solutions.holistic
+	use_rerun = False
 
 	# Sauce: https://developers.google.com/mediapipe/solutions/vision/pose_landmarker/python#video
 
@@ -87,28 +85,29 @@ def vid_to_JSON() -> None:
 
 	connections = Enum('connections', kpts)
 
-	DESCRIPTION = ""
-	rr.init("ErgoPose", spawn=True)
-	rr.log("description", rr.TextDocument(DESCRIPTION, media_type=rr.MediaType.MARKDOWN), timeless=True)
-	rr.log(
-		"/",
-		rr.AnnotationContext(
-		rr.ClassDescription(
-			info=rr.AnnotationInfo(id=0, label="Person"),
-			keypoint_annotations=[rr.AnnotationInfo(id=lm.value, label=lm.name) for lm in connections], # type: ignore
-					keypoint_connections=qq, # type: ignore
+	if use_rerun is True:
+		DESCRIPTION = ""
+		rr.init("ErgoPose", spawn=True)
+		rr.log("description", rr.TextDocument(DESCRIPTION, media_type=rr.MediaType.MARKDOWN), timeless=True)
+		rr.log(
+			"/",
+			rr.AnnotationContext(
+			rr.ClassDescription(
+				info=rr.AnnotationInfo(id=0, label="Person"),
+				keypoint_annotations=[rr.AnnotationInfo(id=lm.value, label=lm.name) for lm in connections], # type: ignore
+						keypoint_connections=qq, # type: ignore
+			)
+			),
+			timeless=True,
 		)
-		),
-		timeless=True,
-	)
-	rr.log( "video/mask",
-		rr.AnnotationContext([
-					rr.AnnotationInfo(id=0, label="Background"),
-					rr.AnnotationInfo(id=1, label="Person", color=(0, 0, 0)),
-					]),
-		timeless=True,
-		)
-	rr.connect()
+		rr.log( "video/mask",
+			rr.AnnotationContext([
+						rr.AnnotationInfo(id=0, label="Background"),
+						rr.AnnotationInfo(id=1, label="Person", color=(0, 0, 0)),
+						]),
+			timeless=True,
+			)
+		rr.connect()
 
 	json_data = {
 			"label":str(video_label),
@@ -116,14 +115,14 @@ def vid_to_JSON() -> None:
 			"data":[]
 			}
 
-	generateFormat = 'SemGCN' # 'COCO17', 'Body25' or 'SemGCN'
+	generateFormat = 'COCO17' # 'COCO17', 'Body25' or 'SemGCN'
 
 	# Process each frame in the video
 	with PoseLandmarker.create_from_options(options) as landmarker:
 		fvs = FileVideoStream(video_path).start()
-		width  		  = int(fvs.stream.get(cv2.CAP_PROP_FRAME_WIDTH))   # vide `width`
-		height 		  = int(fvs.stream.get(cv2.CAP_PROP_FRAME_HEIGHT))  # video `height
-		total_frames      = int(fvs.stream.get(cv2.CAP_PROP_FRAME_COUNT))   # video frames
+		frame_width  		  = int(round(fvs.stream.get(cv2.CAP_PROP_FRAME_WIDTH)))   # vide `width`
+		frame_height 		  = int(round(fvs.stream.get(cv2.CAP_PROP_FRAME_HEIGHT)))  # video `height
+		total_frames      = int(round(fvs.stream.get(cv2.CAP_PROP_FRAME_COUNT)))   # video frames
 
 		skipped_frames    = 0
 		fps               = FPS().start()
@@ -168,36 +167,31 @@ def vid_to_JSON() -> None:
 			# plt.show()
 
 			# ----------------- VISUALIZE 2D POSE -----------------
-			landmark_array = np.array ([ (	width  * landmarks[lm].x, \
-							height * landmarks[lm].y, \
-						-	(landmarks[lm].z) ) \
-							for lm in range(len(landmarks))])
+			if use_rerun is True:
+				landmark_array = np.array ([ (	frame_width  * landmarks[lm].x, \
+								frame_height * landmarks[lm].y, \
+							-	(landmarks[lm].z) ) \
+								for lm in range(len(landmarks))])
 
-			landmark_array_3d = np.array ([( landmarks[lm].x, \
-								landmarks[lm].y, \
-								landmarks[lm].z) \
-							for lm in range(len(landmarks))])  	# noqa: E101
+				landmark_array_3d = np.array ([( landmarks[lm].x, \
+									landmarks[lm].y, \
+									landmarks[lm].z) \
+								for lm in range(len(landmarks))])  	# noqa: E101
 
-			index_as_list =  np.array( list( kpts.items() ) )
-			rr.log("person", rr.ViewCoordinates.RIGHT_HAND_Y_DOWN, timeless=True)
+				index_as_list =  np.array( list( kpts.items() ) )
+				rr.log("person", rr.ViewCoordinates.RIGHT_HAND_Y_DOWN, timeless=True)
 
-			# --------------------------
-			# rr.set_time_seconds("time", time.time())
-			rr.set_time_sequence("frame_idx", count)
-			rr.log("video/rgb", rr.Image(frame).compress(jpeg_quality=80))
+				# --------------------------
+				# rr.set_time_seconds("time", time.time())
+				rr.set_time_sequence("frame_idx", count)
+				rr.log("video/rgb", rr.Image(frame).compress(jpeg_quality=80))
 
-			# Log 2D Keypoints, Image and Mask
-			rr.log("video/pose/points", rr.Points2D(landmark_array , class_ids=0, keypoint_ids=index_as_list[:,1]))
+				# Log 2D Keypoints, Image and Mask
+				rr.log("video/pose/points", rr.Points2D(landmark_array , class_ids=0, keypoint_ids=index_as_list[:,1]))
 
-			rr.log("person/pose/points", rr.Points3D(landmark_array_3d , keypoint_ids=index_as_list[:,1]))
+				rr.log("person/pose/points", rr.Points3D(landmark_array_3d , keypoint_ids=index_as_list[:,1]))
 
-			# threshold the mediapipe confidence to generate the mask
-			# segmentation_confidence_thresh = 0.70
-			# segmentation_mask = pose_landmarker_result.segmentation_masks[0].numpy_view() >= segmentation_confidence_thresh
-			# rr.log("video/mask", rr.SegmentationImage( segmentation_mask.astype(np.uint8) ))
-
-
-			rr.log("segmentation/frame", rr.Image(pose_landmarker_result.segmentation_masks[0].numpy_view()))
+				rr.log("segmentation/frame", rr.Image(pose_landmarker_result.segmentation_masks[0].numpy_view()))
 			# ----------------------------------
 			framecount.append(count)
 			pose = []
@@ -213,8 +207,8 @@ def vid_to_JSON() -> None:
 
 			#  SCALING the x and y coordinates with the resolution of the image to get px corrdinates
 			for i in range(len(pose)):
-				pose[i] = ( 	round( (np.multiply(pose[i][0], width)), 2),
-						round( (np.multiply(pose[i][1], height)), 2) )
+				pose[i] = ( 	round( (np.multiply(pose[i][0], frame_width)), 2),
+						round( (np.multiply(pose[i][1], frame_height)), 2) )
 
 			# ----------------- CALCULATING NEW KEPOINTS -----------------
 			# NECK KPT
@@ -270,7 +264,7 @@ def vid_to_JSON() -> None:
 				semGCN_reorder_fromMP = [00, 23, 25, 27, 24, 26, 28, 00, 00, 00, 00, 2, 3, 4, 5, 6, 7]
 
 				onlyList   = [pose[i] for i in semGCN_reorder_fromMP]
-				score_list = [score[i] for i in semGCN_reorder_fromMP]
+				score_list = [np.round(score[i], 3) for i in semGCN_reorder_fromMP]
 
 				# replace the temp values with actual keypoints (that are not calculated in Mediapipe)
 				onlyList[0]  = HIP_MID
@@ -287,17 +281,33 @@ def vid_to_JSON() -> None:
 				(NOT WORKING atm)
 				"""
 				onlyList            = []
-				coco17_order_fromMP = [00, 00, 12, 14, 16, 11, 13, 15, 24, 26, 28, 23, 25, 27, 5, 2, 8, 7, 00, 00, 00, 00, 00, 00, 00]
+				coco17_order_fromMP = [00, 12, 14, 16, 11, 13, 15, 24, 26, 28, 23, 25, 27, 5, 2, 8, 7]
 
 				onlyList   = [pose[i] for i in coco17_order_fromMP ]
-				score_list = [score[i] for i in coco17_order_fromMP ]
+				score_list = [np.round(score[i], 2) for i in coco17_order_fromMP ]
 
 				# replace the temp values with actual keypoints (that are not calculated in Mediapipe)
-				onlyList[0] = HEAD
-				onlyList[1] = NECK
+				# onlyList[0] = HEAD
+				onlyList[0] = NECK
 
 				# update the score value
 				score    = [[i] for i in score_list]
+
+			# ----------------- Caclculating bbox -----------------
+
+			# finding maximum and minimum of each onlyList columns
+			tempList = np.array(onlyList)
+			x_max = np.max(tempList[:,0])
+			x_min = np.min(tempList[:,0])
+			y_max = np.max(tempList[:,1])
+			y_min = np.min(tempList[:,1])
+
+			# calculating width and height of the bounding box
+			bbox_width  = x_max - x_min
+			bbox_height = y_max - y_min
+
+			# calculating bounding box from min and max values
+			bbox = [x_min, y_min, x_min+bbox_width, y_min+bbox_height]
 
 			# ----------------- GENERATE JSON -----------------
 			qq = {
@@ -306,7 +316,7 @@ def vid_to_JSON() -> None:
 						{
 							"pose" :onlyList,
 							"score":score,
-							"bbox" :[0, 0, 0, 0]
+							"bbox" :bbox
 						}
 					]
 				}
@@ -315,6 +325,7 @@ def vid_to_JSON() -> None:
 		json_filename = video_label + ".json"
 		json_filename = json_filename.replace(".png","_keypoints")
 		with open(json_filename, 'w') as fl:
+			print("[INFO] Writing JSON file: ", json_filename)
 			fl.write(json.dumps(json_data, indent=2, separators=(',', ':')))
 
 	fps.stop()

@@ -1,0 +1,19 @@
+{
+        // Use IntelliSense to learn about possible attributes.
+        // Hover to view descriptions of existing attributes.
+        // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name"   : "Python: Current File",
+                "type"   : "debugpy",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                // "args": ["--path", "/home/atif/installers/EasyMocap/data/", "--mode", "mp-pose"]
+                // "program": "${workspaceFolder}/main.py",
+                // "args": ["--path", "/home/atif/installers/EasyMocap/data/", "--image", "/home/atif/installers/EasyMocap/data/images/"] # for extract_images.py
+                // "justMyCode": false
+            }
+        ]
+    }
