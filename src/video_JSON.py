@@ -115,7 +115,7 @@ def vid_to_JSON() -> None:
 			"data":[]
 			}
 
-	generateFormat = 'COCO17' # 'COCO17', 'Body25' or 'SemGCN'
+	generateFormat = 'Original_COCO17' # 'COCO17', 'Body25' or 'Original_COCO17'
 
 	# Process each frame in the video
 	with PoseLandmarker.create_from_options(options) as landmarker:
@@ -257,38 +257,33 @@ def vid_to_JSON() -> None:
 				# update the score value
 				score    = [[i] for i in score_list]
 
-			elif generateFormat == 'SemGCN':
-				"""Generate JSON compatible with SemGCN (GAST-Net) format
+			elif generateFormat == 'Original_COCO17':
+				"""Generate JSON compatible with Original_COCO17 format
 				"""
 				onlyList              = []
-				semGCN_reorder_fromMP = [00, 23, 25, 27, 24, 26, 28, 00, 00, 00, 00, 2, 3, 4, 5, 6, 7]
+						# INDEX   0, 1, 2, 3, 4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16
+				semGCN_reorder_fromMP = [00, 1, 4, 3, 6, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]
 
 				onlyList   = [pose[i] for i in semGCN_reorder_fromMP]
 				score_list = [np.round(score[i], 3) for i in semGCN_reorder_fromMP]
-
-				# replace the temp values with actual keypoints (that are not calculated in Mediapipe)
-				onlyList[0]  = HIP_MID
-				onlyList[7]  = SPINE
-				onlyList[8]  = THORAX
-				onlyList[9]  = NECK
-				onlyList[10] = HEAD
 
 				# update the score value
 				score  = [[i] for i in score_list]
 
 			elif generateFormat == 'COCO17':
 				"""Generate JSON compatible with OpenPose (Body25) format
-				(NOT WORKING atm)
 				"""
 				onlyList            = []
-				coco17_order_fromMP = [00, 12, 14, 16, 11, 13, 15, 24, 26, 28, 23, 25, 27, 5, 2, 8, 7]
+						# INDEX   0, 1, 2, 3, 4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16
+				coco17_order_fromMP = [00, 12, 14, 16, 11, 13, 15, 24, 26, 27, 23, 25, 28, 5, 2, 8, 7]
 
 				onlyList   = [pose[i] for i in coco17_order_fromMP ]
 				score_list = [np.round(score[i], 2) for i in coco17_order_fromMP ]
 
 				# replace the temp values with actual keypoints (that are not calculated in Mediapipe)
-				# onlyList[0] = HEAD
-				onlyList[0] = NECK
+				onlyList[0] = HIP_MID
+				onlyList[1] = NECK
+				onlyList[7] = SPINE
 
 				# update the score value
 				score    = [[i] for i in score_list]
